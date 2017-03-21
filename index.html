@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      .contenitore { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      #status {position: fixed; bottom: 50px; width 100%; }
+      input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #msgBox { list-style-type: none; margin: 0; padding: 0; }
+      #msgBox li { padding: 5px 10px; }
+      #msgBox li:nth-child(odd) { background: #eee; }
+      #msgBox { margin-bottom: 40px }
+    </style>
+  </head>
+  <body>
+    <ul id="msgBox"></ul>
+    <div id="status"></div>
+    <div class="contenitore">
+      <input id="msg" autocomplete="off"/><button id="send">send</button>
+    </div>
+  </body>
+</html>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="http://code.jquery.com/jquery-1.10.2.js"></script>
+<script>
+    var name,
+        socket = io.connect("http://localhost:1234");
+    $(function () {
+        //as the user to enter their nick name or name.
+        name = window.prompt("enter your name");
+        //If the name is not given, ask the user to enter once again
+        if (name == null || name == "") {
+            $("body").html("<h1 style='position:absolute;left: 365px;top: 198px;'> please refresh the page and try again </h1>");
+        }
+        //When send button is clicked on, send the message to server
+        $("#send").click(function () {
+            //send to the server with person name and message
+            socket.emit("clientMsg", {
+                "name": name,
+                "msg": $("#msg").val()
+            });
+            $("#msg").val('');
+        });
+
+        $(document).keypress(function (e) {
+          var code = e.keyCode;
+          if (code == 13) {
+            socket.emit("clientMsg", {
+                "name": name,
+                "msg": $("#msg").val()
+            });
+            $("#msg").val('');
+          };
+        });
+
+        //After sending message to the server, we'll have to wire up the event for it.
+        //We can do the following. Upon receiving the message print it to the message box
+        //that we've created in our html
+        socket.on("serverMsg", function (data) {
+            //Append the message from the server to the message box
+            $("#msgBox").append("<strong>" + data.name +
+            "</strong>: " + data.msg + "<br/>");
+        });
+
+        $("#msg").on("keyup", function (event) {
+            socket.emit("sender", {
+                name: name
+            });
+        });
+
+        socket.on("sender", function (data) {
+            $("#status").html(data.name + " is typing");
+            setTimeout(function () {
+                $("#status").html('');
+            }, 3000);
+        });
+    });
+</script>
